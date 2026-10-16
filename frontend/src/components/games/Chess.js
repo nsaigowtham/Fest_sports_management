@@ -31,6 +31,11 @@ const Chess = () => {
   const [selectedPlayerDetails, setSelectedPlayerDetails] = useState(null);
   const [footballImage, setFootballImage] = useState(null);
 
+    const [scoreDetails, setScoreDetails] = useState({
+      teams: "", // New state variable for storing team names
+      scores: [],
+    });
+
   useEffect(() => {
     axios
       .get("http://localhost:5000/api/auth/getMatches_chess")
@@ -126,10 +131,15 @@ const Chess = () => {
     setSelectedMatch(match);
     setNewMatch({ ...match });
 
-    // Fetch scores for the selected match
     axios
       .get(`http://localhost:5000/api/auth/getScores_chess/${match._id}`)
-      .then((response) => setScores(response.data))
+      .then((response) => {
+        const { teamA, teamB, scores } = response.data;
+        setScoreDetails({
+          teams: `${teamA} VS ${teamB}`,
+          scores: scores,
+        });
+      })
       .catch((error) => console.error(error));
     axios
       .get(
@@ -146,13 +156,7 @@ const Chess = () => {
       .catch((error) => console.error(error));
   };
 
-  const handleScoreRowClick = (score) => {
-    setSelectedScoreDetails(score); // Set selected score details
-    setScoreFormData({
-      teams: score.teams,
-      round1: score.round1,
-    });
-  };
+
 
   const handleHideForm = () => {
     setNewMatch({ name: "", status: "future" });
@@ -160,9 +164,6 @@ const Chess = () => {
     setIsFormVisible(false);
   };
 
-  const handleScoreInputChange = (e) => {
-    setScoreFormData({ ...scoreFormData, [e.target.name]: e.target.value });
-  };
 
   const handleAddScore = () => {
     if (selectedMatch) {
@@ -217,39 +218,6 @@ const Chess = () => {
         "Selected match or score details are not populated correctly."
       );
     }
-  };
-
-  const handleDeleteScore = () => {
-    if (selectedScoreDetails) {
-      const matchId = selectedMatch._id;
-      const scoreId = selectedScoreDetails._id;
-
-      axios
-        .delete(
-          `http://localhost:5000/api/auth/deleteScoredetails_chess/${scoreId}/${matchId}`
-        )
-        .then(() => {
-          const updatedScores = scores.filter(
-            (score) => score._id !== selectedScoreDetails._id
-          );
-
-          setScores(updatedScores);
-          setScoreFormData({
-            teams: "",
-            round1: "",
-          });
-          setSelectedScoreDetails(null);
-        })
-        .catch((error) => console.error(error));
-    }
-  };
-
-  const handleToggleAddScoreForm = () => {
-    setIsAddScoreFormVisible(!isAddScoreFormVisible);
-  };
-
-  const handleHideAddScoreForm = () => {
-    setIsAddScoreFormVisible(false);
   };
 
   const handlePlayerInputChange = (e) => {
@@ -633,91 +601,66 @@ const Chess = () => {
       </div>
 
       {/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */}
-      <div className="mt-4">
+      <div>
         <h3>Score Details</h3>
         <table className="table">
           <thead>
             <tr>
               <th>Teams</th>
-              <th>Goals</th>
+              <th>Score</th>
+              <th>Actions</th>{" "}
+              {/* Add this column for Add/Update Score buttons */}
             </tr>
           </thead>
           <tbody>
-            {scores.map((score, index) => (
-              <tr
-                key={index}
-                className={`${
-                  selectedScoreDetails && selectedScoreDetails._id === score._id
-                    ? "active"
-                    : ""
-                }`}
-                onClick={() => handleScoreRowClick(score)}
-              >
-                <td>{score.teams}</td>
-                <td>{score.round1}</td>
-              </tr>
-            ))}
+            <tr>
+              <td>{scoreDetails.teamA}</td>
+              <td>
+                <ul>
+                  {scoreDetails.scores.map((score, index) => (
+                    <li key={index}>
+                      Round {index + 1}: {score}
+                    </li>
+                  ))}
+                </ul>
+              </td>
+              <td>
+                <button
+                  onClick={handleAddScore}
+                  className="btn btn-primary mr-2"
+                >
+                  Add Score
+                </button>
+                <button onClick={handleUpdateScore} className="btn btn-primary">
+                  Update Score
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>{scoreDetails.teamB}</td>
+              <td>
+                <ul>
+                  {scoreDetails.scores.map((score, index) => (
+                    <li key={index}>
+                      Round {index + 1}: {score}
+                    </li>
+                  ))}
+                </ul>
+              </td>
+              <td>
+                <button
+                  onClick={handleAddScore}
+                  className="btn btn-primary mr-2"
+                >
+                  Add Score
+                </button>
+                <button onClick={handleUpdateScore} className="btn btn-primary">
+                  Update Score
+                </button>
+              </td>
+            </tr>
           </tbody>
         </table>
-
-        {/* Add Score Form */}
-        {isAdmin && selectedMatch && isAddScoreFormVisible && (
-          <div className="form-row">
-            <div className="form-group col-md-3">
-              <label>Teams:</label>
-              <input
-                type="text"
-                name="teams"
-                value={scoreFormData.teams}
-                onChange={handleScoreInputChange}
-                className="form-control"
-              />
-            </div>
-            <div className="form-group col-md-3">
-              <label>Round 1:</label>
-              <input
-                type="number"
-                name="round1"
-                value={scoreFormData.round1}
-                onChange={handleScoreInputChange}
-                className="form-control"
-              />
-            </div>
-            <div className="form-group col-md-12">
-              <button onClick={handleAddScore} className="btn btn-primary mr-2">
-                Add Score
-              </button>
-              <button
-                onClick={handleUpdateScore}
-                className="btn btn-danger mr-2"
-              >
-                Update Score
-              </button>
-              <button
-                onClick={handleDeleteScore}
-                className="btn btn-danger mr-2"
-              >
-                Delete Score
-              </button>
-              <button
-                onClick={handleHideAddScoreForm}
-                className="btn btn-secondary"
-              >
-                Hide
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Toggle Add Score Form Button */}
-        {isAdmin && selectedMatch && !isAddScoreFormVisible && (
-          <button
-            onClick={handleToggleAddScoreForm}
-            className="btn btn-success mt-2"
-          >
-            Add Score
-          </button>
-        )}
       </div>
 
       {/* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */}

@@ -11,3 +11,5 @@ dist/
 
 # Ignore environment-specific files
 .env
+.env.local
+

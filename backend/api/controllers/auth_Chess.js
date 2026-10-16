@@ -98,18 +98,26 @@ const getScoredetails = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Find the match by ID
     const match = await Chess_m.findById(id);
 
     if (!match) {
       return res.status(404).json({ error: "Match not found" });
     }
 
-    res.json(match.scores);
+    // Extract teamA and teamB from the match
+    const { teamA, teamB } = match;
+
+    // Get the scores associated with the match
+    const scores = match.scores;
+
+    res.json({ teamA, teamB, scores });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 // Update score details
 const updateScoredetails = async (req, res) => {
